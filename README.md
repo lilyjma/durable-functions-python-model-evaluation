@@ -16,6 +16,8 @@ languages:
 ## About sample
 This sample demonstrates how to use Durable Functions to call multiple models in parallel to quickly get the best response to a user's query. It uses three models - GPT-3.5-turbo, GPT-4o-mini, and Phi-4 - to answer a query. After getting the responses, it uses GPT-4 to evaluate and select the simplest and most intuitive response.
 
+![Screenshot of sample-architecture](./media/sample-architecture.png)
+
 There's no particular reason for choosing the models used in this sample - the key is to demonstrate how to leverage Durable Function's fan-out/fan-in pattern to easily realize this scenario. 
 
 ### About Durable Functions 
