@@ -51,54 +51,52 @@ def orchestrator_function(context):
 
 @app.activity_trigger(input_name="prompt")
 def get_gpt35_result(prompt: str):
-    system_prompt = """You are a helpful math assistant."""
+    system_prompt = """You are a helpful assistant in STEM."""
     
-    client = AzureOpenAI(
-        azure_endpoint = os.environ["GPT35_ENDPOINT"], 
-        api_key=os.environ["GPT35_API_KEY"],  
-        api_version="2024-02-01"
+    client = ChatCompletionsClient(
+        endpoint=os.environ["MODEL_ENDPOINT"],
+        credential=AzureKeyCredential(os.environ["MODEL_API_KEY"]),
     )
-    response = client.chat.completions.create(
-        model="gpt-35-turbo", # deployment name
+    response = client.complete(
+        model="gpt-35-turbo", # model deployment name
         messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": prompt}
+            SystemMessage(content=system_prompt),
+            UserMessage(content=prompt)
         ],
         temperature=0
     )
-        
+    
     return response.choices[0].message.content
 
 @app.activity_trigger(input_name="prompt")
 def get_gpt4omini_result(prompt: str):
-    system_prompt = """You are a helpful math assistant."""
-
-    client = AzureOpenAI(
-        azure_endpoint = os.environ["GPT4O_MINI_ENDPOINT"], 
-        api_key=os.environ["GPT4O_MINI_API_KEY"],  
-        api_version="2024-02-01"
+    system_prompt = """You are a helpful assistant in STEM."""
+    
+    client = ChatCompletionsClient(
+        endpoint=os.environ["MODEL_ENDPOINT"],
+        credential=AzureKeyCredential(os.environ["MODEL_API_KEY"]),
     )
-    response = client.chat.completions.create(
-        model="gpt-4o-mini", # deployment name
+    response = client.complete(
+        model="gpt-4o-mini", # model deployment name
         messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": prompt}
+            SystemMessage(content=system_prompt),
+            UserMessage(content=prompt)
         ],
         temperature=0
     )
-        
+
     return response.choices[0].message.content
 
 @app.activity_trigger(input_name="prompt")
 def get_phi4_result(prompt: str):
-    system_prompt = """You are a helpful math assistant."""
+    system_prompt = """You are a helpful assistant in STEM."""
     
     client = ChatCompletionsClient(
-        endpoint=os.environ["PHI4_ENDPOINT"],
-        credential=AzureKeyCredential(os.environ["PHI4_API_KEY"]),
+        endpoint=os.environ["MODEL_ENDPOINT"],
+        credential=AzureKeyCredential(os.environ["MODEL_API_KEY"]),
     )
     response = client.complete(
-        model="Phi-4",
+        model="Phi-4", # model deployment name
         messages=[
             SystemMessage(content=system_prompt),
             UserMessage(content=prompt)
@@ -116,28 +114,25 @@ def get_gpt4_result(inputData: list):
 
     Responses from models:"""
     
-    client = AzureOpenAI(
-        azure_endpoint = os.environ["GPT4_ENDPOINT"], 
-        api_key=os.environ["GPT4_API_KEY"], 
-        api_version="2024-02-01"
+    client = ChatCompletionsClient(
+        endpoint=os.environ["MODEL_ENDPOINT"],
+        credential=AzureKeyCredential(os.environ["MODEL_API_KEY"]),
     )
     
     proposed_responses, user_prompt = inputData[0], inputData[1]
     complete_system_prompt = system_prompt + "\n" + proposed_responses
     
-    messages = [
-        {"role": "system", "content": complete_system_prompt},
-        {"role": "user", "content": user_prompt}
-    ]
-
     print(f"Evaluation model input: \n {complete_system_prompt}")
-
-    response = client.chat.completions.create(
-        model="gpt-4",
-        messages=messages,
+    
+    response = client.complete(
+        model="gpt-4", # model deployment name
+        messages=[
+            SystemMessage(content=complete_system_prompt),
+            UserMessage(content=user_prompt)
+        ],
         temperature=0
     )
-    
+
     return response.choices[0].message.content
 
 

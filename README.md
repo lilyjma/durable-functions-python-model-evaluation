@@ -41,43 +41,43 @@ The project is designed to run on your local computer, provided you have met the
 + [Azure Functions Core Tools](https://learn.microsoft.com/azure/azure-functions/functions-run-local?tabs=v4%2Cmacos%2Ccsharp%2Cportal%2Cbash#install-the-azure-functions-core-tools)
 + Install [Azurite storage emulator](https://learn.microsoft.com/azure/storage/common/storage-use-azurite). 
 + Clone the repo
-+ Deploy the models needed by sample:
-  - [GPT-4](https://learn.microsoft.com/azure/ai-studio/how-to/deploy-models-openai)
-  - [GPT-3.5-turbo](https://learn.microsoft.com/azure/ai-studio/how-to/deploy-models-openai)
-  - [GPT-4o-mini](https://learn.microsoft.com/azure/ai-studio/how-to/deploy-models-openai)
-  - [Phi-4](https://learn.microsoft.com/azure/ai-studio/how-to/deploy-models-phi-4?pivots=programming-language-python) (pick the deploy the model as a serverless API option)
+
+### Deploy language models
+
+1. [Create an Azure subscription with a valid payment method](https://azure.microsoft.com/pricing/purchase-options/pay-as-you-go). Free or trial Azure subscriptions won't work. 
+
+1. [Create a project in Azure AI Foundry](https://learn.microsoft.com/azure/ai-studio/how-to/create-projects?tabs=ai-studio)
+
+1. Go to **Model catalog** on the left menu and search for the following models to deploy:
+    - GPT-4
+    - GPT-3.5-turbo
+    - GPT-4o-mini
+    - Phi-4 ([small language model by Microsoft](https://techcommunity.microsoft.com/blog/aiplatformblog/introducing-phi-4-microsoft%E2%80%99s-newest-small-language-model-specializing-in-comple/4357090) that has advanced reasoning capabilities in areas like math and science)
+
+    ![Screenshot of model catelog on Azure AI Foundry](./media/model-catalog.png)
+  
 
 ### Get endpoints and keys for models 
-You'll need the model endpoints and keys for the next step.
+You'll need the model API key and endpoint for the next step.
 
-#### GPT models 
-Get the connection information by going to the "Deployments" tab on Azure AI Foundry portal and clicking into the name of the model. For example, here's how to get the information for GTP-3.5-turbo: 
-  ![Getting connection info example](media/gpt-35-connection.png)
+Go to the **Overview** tab of the project where models are deployed. API key is on the top.
 
-#### Phi-4
-[Phi-4](https://techcommunity.microsoft.com/blog/aiplatformblog/introducing-phi-4-microsoft%E2%80%99s-newest-small-language-model-specializing-in-comple/4357090) is a small language model by Microsoft that has advanced reasoning capabilities in areas like math and science.
+To get the endpoint, click on **Azure AI inference** under "Included capabilities":
 
-Phi-4 is not an OpenAI model. To find the connection information, go to the "Home" page of the project where this model is deployed. 
-  ![Phi 4 connection info](media/phi-4-connection.png)
+  ![Connection info](media/connection-info.png)
 
 
 ### Using Visual Studio Code
-1. Open this folder in a new terminal 
+1. Open **app** folder in a new terminal 
 2. Open VS Code by entering `code .` in the terminal
-3. In the root folder (**app**), create a file named `local.settings.json` with the following, filling in connection information from the previous step:
+3. In the root folder, create a file named `local.settings.json` with the following, filling in connection information from the previous step:
     ```json
     {
       "IsEncrypted": false,
       "Values": {
           "AzureWebJobsStorage": "UseDevelopmentStorage=true",
-          "GPT35_ENDPOINT": "https://<resource name>.openai.azure.com/openai/deployments/<deployment name>/chat/completions?api-version=2024-08-01-preview",
-          "GPT35_API_KEY": "model api key",
-          "GPT4_ENDPOINT": "https://<resource name>.openai.azure.com/openai/deployments/<deployment name>/chat/completions?api-version=2024-08-01-preview",
-          "GPT4_API_KEY": "model api key",
-          "GPT4O_MINI_ENDPOINT": "https://<resource name>.openai.azure.com/openai/deployments/<deployment name>/chat/completions?api-version=2024-08-01-preview",
-          "GPT4O_MINI_API_KEY": "model api key",
-          "PHI4_ENDPOINT": "https://<resource name>.services.ai.azure.com/models",
-          "PHI4_API_KEY": "model api key",
+          "MODEL_ENDPOINT": "https://<resource name>.services.ai.azure.com/models",
+          "MODEL_API_KEY": "<api key>", 
           "FUNCTIONS_WORKER_RUNTIME": "python"
       }
     }
@@ -86,7 +86,7 @@ Phi-4 is not an OpenAI model. To find the connection information, go to the "Hom
 
 5. Run project with debugging (F5)
 
-6. You can test easily by going to the `test.http` file and click "Send Request". This file has an example query asking:
+6. You can test easily by going to the `test.http` file and click "Send Request". This file has POST requests asking different questions. For example: 
   
    *"In a room of 10 people, how many handshakes are needed so that everyone has shaken hands with everyone else exactly once?"*
 
@@ -145,7 +145,7 @@ The sample added a print statement to print out the prompt to the evaluation mod
 
 ![Evaluation model prompt](media/evaluation-model-prompt.png)
 
-All three responses returned `45` as the answer. Just like what GPT-4 has determined, the first one does seem to be the simplest and easiest to understand.  
+All three responses returned `45` as the answer. GPT-4 determined that first one to be the simplest and easiest to understand as shown above.  
 
 
 ### Using Azure Functions Core Tools (CLI)
