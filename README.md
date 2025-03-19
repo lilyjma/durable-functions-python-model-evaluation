@@ -14,16 +14,18 @@ languages:
 # Model evaluation using Durable Functions (Python)
 
 ## About sample
-This sample demonstrates how to use Durable Functions to call multiple models in parallel to quickly get the best response to a user's query. It uses three models - GPT-3.5-turbo, GPT-4o-mini, and Phi-4 - to answer a query. After getting the responses, it uses GPT-4 to evaluate and select the simplest and most intuitive response.
+
+This sample demonstrates how to use Durable Functions to call multiple models in parallel to quickly get the best response to a user's query. It uses three models - GPT-3.5-turbo, GPT-4o-mini, and Phi-4 - to answer a query. After getting the responses, it uses GPT-4 to evaluate and score the responses based on a certain criteria. 
 
 ![Screenshot of sample-architecture](./media/sample-architecture.png)
 
 There's no particular reason for choosing the models used in this sample - the key is to demonstrate how to leverage Durable Function's fan-out/fan-in pattern to easily realize this scenario. 
 
 ### About Durable Functions 
+
 [Durable Functions](https://learn.microsoft.com/azure/azure-functions/durable/durable-functions-overview) is part of [Azure Functions](https://learn.microsoft.com/azure/azure-functions/functions-overview) offering. It helps  orchestrate stateful logic that is long-running and provides reliable execution. For example, when there's infrastructure failure (network connectivity dropped, VM crashed, etc.), the framework rebuilds application state and start from the point of failure instead of the beginning. This helps save time and money, especially for expensive operations like LLM calls. Common scenarios where Durable Functions is useful include agentic workflows, data processing, asynchronous APIs, batch processing, and infrastructure management.
 
-Durable Functions needs a [backend provider](https://learn.microsoft.com/azure/azure-functions/durable/durable-functions-storage-providers) to persist application states. This sample uses the Azure Storage backend. 
+Durable Functions needs a [backend provider](https://learn.microsoft.com/azure/azure-functions/durable/durable-functions-storage-providers) to persist application states. This sample uses the new [Durable Task Scheduler](https://learn.microsoft.com/azure/azure-functions/durable/durable-task-scheduler/durable-task-scheduler) backend that's currently in preview. 
 
 > [!IMPORTANT]
 > This sample creates several resources. Delete the resource group after testing to minimize charges.
@@ -37,14 +39,16 @@ The project is designed to run on your local computer, provided you have met the
 + [Using Azure Functions Core Tools (CLI)](#using-azure-functions-core-tools-cli)
 
 ### Prerequisites
+
 + [Python 3.11](https://www.python.org/downloads/) 
 + [Azure Functions Core Tools](https://learn.microsoft.com/azure/azure-functions/functions-run-local?tabs=v4%2Cmacos%2Ccsharp%2Cportal%2Cbash#install-the-azure-functions-core-tools)
++ Install [Docker](https://www.docker.com/)
 + Install [Azurite storage emulator](https://learn.microsoft.com/azure/storage/common/storage-use-azurite). 
 + Clone the repo
 
 ### Deploy language models
 
-1. [Create an Azure subscription with a valid payment method](https://azure.microsoft.com/pricing/purchase-options/pay-as-you-go). Free or trial Azure subscriptions won't work. 
+1. [Create an Azure subscription with a valid payment method](https://azure.microsoft.com/pricing/purchase-options/pay-as-you-go). Free or trial Azure subscriptions *won't* work. 
 
 1. [Create a project in Azure AI Foundry](https://learn.microsoft.com/azure/ai-studio/how-to/create-projects?tabs=ai-studio)
 
@@ -57,7 +61,8 @@ The project is designed to run on your local computer, provided you have met the
     ![Screenshot of model catelog on Azure AI Foundry](./media/model-catalog.png)
   
 
-### Get endpoints and keys for models 
+### Get endpoints and keys for models
+
 You'll need the model API key and endpoint for the next step.
 
 Go to the **Overview** tab of the project where models are deployed. API key is on the top.
@@ -66,11 +71,30 @@ To get the endpoint, click on **Azure AI inference** under "Included capabilitie
 
   ![Connection info](media/connection-info.png)
 
+### Set up Durable Task Scheduler emulator 
 
-### Using Visual Studio Code
+1. Pull Docker image:
+    ```bash
+    docker pull mcr.microsoft.com/dts/dts-emulator:v0.0.5
+    ```
+1. Run Docker image:
+    ```bash
+    docker run -itP mcr.microsoft.com/dts/dts-emulator:v0.0.5
+    ```
+
+  The emulator exposes several ports: 
+  - `8080`: gRPC endpoint that allows the app to connect to the scheduler
+  - `8082`: endpoint for monitoring dashboard  
+
+   ![Docker desktop view of emulator container](./media/emulator-container.png)
+
+   Use the port number mapped to `8080` in your durable task scheduler connection string. For example, in this case, the connection string would be `Endpoint=http://localhost:55000>;Authentication=None`
+
+### Run app using Visual Studio Code
+
 1. Open **app** folder in a new terminal 
 2. Open VS Code by entering `code .` in the terminal
-3. In the root folder, create a file named `local.settings.json` with the following, filling in connection information from the previous step:
+3. In the root folder, create a file named `local.settings.json` with the following, filling in connection information from the previous step: 
     ```json
     {
       "IsEncrypted": false,
@@ -78,47 +102,23 @@ To get the endpoint, click on **Azure AI inference** under "Included capabilitie
           "AzureWebJobsStorage": "UseDevelopmentStorage=true",
           "MODEL_ENDPOINT": "https://<resource name>.services.ai.azure.com/models",
           "MODEL_API_KEY": "<api key>", 
+          "DURABLE_TASK_SCHEDULER_CONNECTION_STRING": "Endpoint=http://localhost:<port number>;Authentication=None",
+          "TASKHUB_NAME": "default", 
           "FUNCTIONS_WORKER_RUNTIME": "python"
       }
     }
     ```
 4. Start Azurite by opening the command template and searching for `Azurite: Start`
 
-5. Run project with debugging (F5)
+5. Run project with debugging (or press F5)
 
 6. You can test easily by going to the `test.http` file and click "Send Request". This file has POST requests asking different questions. For example: 
   
-   *"In a room of 10 people, how many handshakes are needed so that everyone has shaken hands with everyone else exactly once?"*
+    *"What is the value proposition of Durable Functions and what is it used for?"*
 
-    The http request returns a 202 with the following:
-    ```json
-    {
-      "id": "e59b4988a8d04105ae5b75907a8202f6",
-      "statusQueryGetUri": "http://localhost:7071/runtime/webhooks/durabletask/instances/e59b4988a8d04105ae5b75907a8202f6?taskHub=TestHubName&connection=Storage&code=<code>",
-      "sendEventPostUri": "http://localhost:7071/runtime/webhooks/durabletask/instances/e59b4988a8d04105ae5b75907a8202f6/raiseEvent/{eventName}?taskHub=TestHubName&connection=Storage&code=<code>",
-      "terminatePostUri": "http://localhost:7071/runtime/webhooks/durabletask/instances/e59b4988a8d04105ae5b75907a8202f6/terminate?reason={text}&taskHub=TestHubName&connection=Storage&code=<code>",
-      "rewindPostUri": "http://localhost:7071/runtime/webhooks/durabletask/instances/e59b4988a8d04105ae5b75907a8202f6/rewind?reason={text}&taskHub=TestHubName&connection=Storage&code=<code>",
-      "purgeHistoryDeleteUri": "http://localhost:7071/runtime/webhooks/durabletask/instances/e59b4988a8d04105ae5b75907a8202f6?taskHub=TestHubName&connection=Storage&code=<code>",
-      "restartPostUri": "http://localhost:7071/runtime/webhooks/durabletask/instances/e59b4988a8d04105ae5b75907a8202f6/restart?taskHub=TestHubName&connection=Storage&code=<code>",
-      "suspendPostUri": "http://localhost:7071/runtime/webhooks/durabletask/instances/e59b4988a8d04105ae5b75907a8202f6/suspend?reason={text}&taskHub=TestHubName&connection=Storage&code=<code>",
-      "resumePostUri": "http://localhost:7071/runtime/webhooks/durabletask/instances/e59b4988a8d04105ae5b75907a8202f6/resume?reason={text}&taskHub=TestHubName&connection=Storage&code=<code>"
-    }
-    ```
+    The request will return an HTTP response with some URLs that allow you to manage the orchestration, but this sample won't be using those.
 
-7. Go the `statusQueryGetUri` to get the result of the orchestration instance. It should show the final answer picked by the evaluation model in the **output**:
-
-    ```json
-    {
-      "name": "orchestrator_function",
-      "instanceId": "292e739b69ca4b3cb00c8dcdc499e6ae",
-      "runtimeStatus": "Completed",
-      "input": "\"In a room of 10 people, how many handshakes are needed so that everyone has shaken hands with everyone else exactly once?\"",
-      "customStatus": null,
-      "output": "The simplest and most intuitive response is:\n\nTo solve this problem, we can use the formula for the number of handshakes in a group of n people, which is:\n\nn(n-1)/2\n\nIn this case, we have 10 people, so we can substitute n=10 into the formula:\n\n10(10-1)/2 = 45\n\nTherefore, 45 handshakes are needed so that everyone has shaken hands with everyone else exactly once.",
-      "createdTime": "2025-02-10T20:35:55Z",
-      "lastUpdatedTime": "2025-02-10T20:37:03Z"
-    }
-    ```
+7. Check the `mylog.log` file. This file logs the prompt and response from each language model, as well as the final evaluation result. 
 
 ### Inspect the solution 
 
@@ -130,25 +130,42 @@ def orchestrator_function(context):
   # Previous logic
   
   tasks = [
-      context.call_activity("get_gpt35_result", user_prompt),
-      context.call_activity("get_gpt4omini_result", user_prompt),
-      context.call_activity("get_phi4_result", user_prompt)
+    context.call_activity_with_retry("get_gpt35_result", retry_options, [user_prompt, system_prompt]),
+    context.call_activity_with_retry("get_gpt4omini_result", retry_options, [user_prompt, system_prompt]),
+    context.call_activity_with_retry("get_phi4_result", retry_options, [user_prompt, system_prompt])
   ]
   
+  # Run all tasks in parallel
   results = yield context.task_all(tasks)
 
   # Other business logic
 ```
 
-#### Responses from language models
-The sample added a print statement to print out the prompt to the evaluation model, which shows the responses from the three different language models: 
+Each of the `get_<model>_result` activity functions makes a call to the corresponding language model. For example, the `get_gpt35_result` looks like:
 
-![Evaluation model prompt](media/evaluation-model-prompt.png)
+```python
+@app.activity_trigger(input_name="prompts")
+def get_gpt35_result(prompts: list):
+    user_prompt, system_prompt = prompts[0], prompts[1]
+    
+    client = ChatCompletionsClient(
+        endpoint=os.environ["MODEL_ENDPOINT"],
+        credential=AzureKeyCredential(os.environ["MODEL_API_KEY"]),
+    )
+    response = client.complete(
+        model="gpt-35-turbo", # model deployment name
+        messages=[
+            SystemMessage(content=system_prompt),
+            UserMessage(content=user_prompt)
+        ],
+        temperature=0
+    )
+    
+    return [response.choices[0].message.content, "gpt-35-turbo", datetime.now().strftime("%Y-%m-%d %H:%M:%S")]
+```
 
-All three responses returned `45` as the answer. GPT-4 determined that first one to be the simplest and easiest to understand as shown above.  
+### Run app using Azure Functions Core Tools (CLI)
 
-
-### Using Azure Functions Core Tools (CLI)
 1. Make sure Azurite is started before proceeding.
 
 2. Open the cloned repo in a new terminal and navigate to the `app` directory: 
@@ -181,4 +198,5 @@ func start
 For more information on Durable Functions, see the following:
 
 * [Durable Functions overview](https://learn.microsoft.com/azure/azure-functions/durable/durable-functions-overview)
+* [Durable Task Scheduler samples](https://github.com/Azure-Samples/Durable-Task-Scheduler/)
 * Order processing workflow with Durable Functions [Python sample](https://github.com/Azure-Samples/durable-functions-order-processing-python), [C# sample](https://github.com/Azure-Samples/Durable-Functions-Order-Processing) 
