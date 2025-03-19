@@ -118,7 +118,7 @@ To get the endpoint, click on **Azure AI inference** under "Included capabilitie
 
     The request will return an HTTP response with some URLs that allow you to manage the orchestration, but this sample won't be using those.
 
-7. Check the `mylog.log` file. This file logs the prompt and response from each language model, as well as the final evaluation result. 
+7. Check the `mylog.log` file. [This file](./app/mylog.log) logs the prompt and response from each language model, as well as the final evaluation result. 
 
 ### Inspect the solution 
 
