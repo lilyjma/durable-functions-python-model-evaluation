@@ -12,14 +12,14 @@ Content-Length: 20
 "Explain general relativity."
 
 ###
-POST https://<app name>.azurewebsites.net/api/orchestrators/orchestrator_function
+POST https://<app name>/api/orchestrators/orchestrator_function
 Content-Type: application/json
 Content-Length: 20
 
-"What is the value proposition of Azure Functions and what is it used for?
+"What is the value proposition of Azure Durable Functions and what is it used for?
 
 ###
-POST https://<app name>.azurewebsites.net/api/orchestrators/orchestrator_function
+POST https://<app name>/api/orchestrators/orchestrator_function
 Content-Type: application/json
 Content-Length: 20
 
