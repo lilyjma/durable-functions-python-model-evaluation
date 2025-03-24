@@ -107,7 +107,7 @@ To get the endpoint, click on **Azure AI inference** under "Included capabilitie
     }
     ```
 
-    > [!NOTE]
+    > **Note:** 
     > The value shown for `BLOB_STORAGE_ENDPOINT` is the default value for Azurite (Azure Storage emulator) - it's not a private key.
 
 4. Start Azurite by running:
