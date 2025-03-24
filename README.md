@@ -123,7 +123,7 @@ To get the endpoint, click on **Azure AI inference** under "Included capabilitie
 
     The request will return an HTTP response with some URLs that allow you to manage the orchestration, but this sample won't be using those.
 
-7. The model evaluation result is stored in a container called *results* and can be viewed using the Azure Storage Explorer. Open the explorer, click **Emulator & Attached** > **Storage Accounts** > **(Emulator - Default Ports)(Key)** > **Blob Containers** > **results**: 
+7. The model evaluation result is stored in a container called *results* and can be viewed using the Azure Storage Explorer. Open the explorer, click **Emulator & Attached** > **Storage Accounts** > **(Emulator - Default Ports)(Key)** > **Blob Containers** > **results**. Double click on a `.txt` file to see evaluation result for a specific prompt. 
 
     ![Azure Storage Explorer view](./media/az-storage-explorer.png)
 
