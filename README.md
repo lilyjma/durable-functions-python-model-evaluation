@@ -15,7 +15,7 @@ languages:
 
 ## About sample
 
-This sample demonstrates how to use Durable Functions to call multiple models in parallel to quickly get the best response to a user's query. It uses three models - GPT-3.5-turbo, GPT-4o-mini, and Phi-4 - to answer a query. After getting the responses, it uses GPT-4 to evaluate and score the responses based on a certain criteria. 
+This sample demonstrates how to use Durable Functions to call multiple models in parallel to quickly get the best response to a user's query. It uses three models - GPT-3.5-turbo, GPT-4o-mini, and Phi-4 - to answer a query. After getting the responses, it uses GPT-4o to evaluate and score the responses based on a certain criteria. 
 
 ![Screenshot of sample-architecture](./media/sample-architecture.png)
 
@@ -23,7 +23,7 @@ There's no particular reason for choosing the models used in this sample - the k
 
 ### About Durable Functions 
 
-[Durable Functions](https://learn.microsoft.com/azure/azure-functions/durable/durable-functions-overview) is part of [Azure Functions](https://learn.microsoft.com/azure/azure-functions/functions-overview) offering. It helps  orchestrate stateful logic that is long-running and provides reliable execution. For example, when there's infrastructure failure (network connectivity dropped, VM crashed, etc.), the framework rebuilds application state and start from the point of failure instead of the beginning. This helps save time and money, especially for expensive operations like LLM calls. Common scenarios where Durable Functions is useful include agentic workflows, data processing, asynchronous APIs, batch processing, and infrastructure management.
+[Durable Functions](https://learn.microsoft.com/azure/azure-functions/durable/durable-functions-overview) is part of [Azure Functions](https://learn.microsoft.com/azure/azure-functions/functions-overview) offering. It helps  orchestrate stateful logic that is long-running and provides reliable execution. For example, when there's infrastructure failure (process crash, VM restart, etc.), the framework rebuilds application state and start from the point of failure instead of the beginning. This helps save time and money, especially for expensive operations like LLM calls. Common scenarios where Durable Functions is useful include agentic workflows, data processing, asynchronous APIs, batch processing, and infrastructure management.
 
 Durable Functions needs a [backend provider](https://learn.microsoft.com/azure/azure-functions/durable/durable-functions-storage-providers) to persist application states. This sample uses the new [Durable Task Scheduler](https://learn.microsoft.com/azure/azure-functions/durable/durable-task-scheduler/durable-task-scheduler) backend that's currently in preview. 
 
@@ -44,6 +44,7 @@ The project is designed to run on your local computer, provided you have met the
 + [Azure Functions Core Tools](https://learn.microsoft.com/azure/azure-functions/functions-run-local?tabs=v4%2Cmacos%2Ccsharp%2Cportal%2Cbash#install-the-azure-functions-core-tools)
 + Install [Docker](https://www.docker.com/)
 + Install [Azurite storage emulator](https://learn.microsoft.com/azure/storage/common/storage-use-azurite). 
++ Install [Azure Storage Explorer](https://azure.microsoft.com/products/storage/storage-explorer#Download-4).
 + Clone the repo
 
 ### Deploy language models
@@ -53,7 +54,7 @@ The project is designed to run on your local computer, provided you have met the
 1. [Create a project in Azure AI Foundry](https://learn.microsoft.com/azure/ai-studio/how-to/create-projects?tabs=ai-studio)
 
 1. Go to **Model catalog** on the left menu and search for the following models to deploy:
-    - GPT-4
+    - GPT-4o
     - GPT-3.5-turbo
     - GPT-4o-mini
     - Phi-4 ([small language model by Microsoft](https://techcommunity.microsoft.com/blog/aiplatformblog/introducing-phi-4-microsoft%E2%80%99s-newest-small-language-model-specializing-in-comple/4357090) that has advanced reasoning capabilities in areas like math and science)
@@ -79,16 +80,12 @@ To get the endpoint, click on **Azure AI inference** under "Included capabilitie
     ```
 1. Run Docker image:
     ```bash
-    docker run -itP mcr.microsoft.com/dts/dts-emulator:v0.0.5
+    docker run -d -p 8080:8080 -p 8082:8082 mcr.microsoft.com/dts/dts-emulator:v0.0.5
     ```
 
   The emulator exposes several ports: 
   - `8080`: gRPC endpoint that allows the app to connect to the scheduler
   - `8082`: endpoint for monitoring dashboard  
-
-   ![Docker desktop view of emulator container](./media/emulator-container.png)
-
-   Use the port number mapped to `8080` in your durable task scheduler connection string. For example, in this case, the connection string would be `Endpoint=http://localhost:55000>;Authentication=None`
 
 ### Run app using Visual Studio Code
 
@@ -100,25 +97,37 @@ To get the endpoint, click on **Azure AI inference** under "Included capabilitie
       "IsEncrypted": false,
       "Values": {
           "AzureWebJobsStorage": "UseDevelopmentStorage=true",
-          "MODEL_ENDPOINT": "https://<resource name>.services.ai.azure.com/models",
-          "MODEL_API_KEY": "<api key>", 
-          "DURABLE_TASK_SCHEDULER_CONNECTION_STRING": "Endpoint=http://localhost:<port number>;Authentication=None",
-          "TASKHUB_NAME": "default", 
+          "BLOB_STORAGE_ENDPOINT": "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;",
+          "MODELS_ENDPOINT": "https://<resource name>.services.ai.azure.com/models",
+          "AZURE_AI_API_KEY": "<api key>", 
+          "DURABLE_TASK_SCHEDULER_CONNECTION_STRING": "Endpoint=http://localhost:8080;Authentication=None",
+          "TASKHUB_NAME": "default",
           "FUNCTIONS_WORKER_RUNTIME": "python"
       }
     }
     ```
-4. Start Azurite by opening the command template and searching for `Azurite: Start`
+
+    > [!NOTE]
+    > The value shown for `BLOB_STORAGE_ENDPOINT` is the default value for Azurite (Azure Storage emulator) - it's not a private key.
+
+4. Start Azurite by running:
+    ```bash
+    azurite start --skipApiVersionCheck
+    ``` 
 
 5. Run project with debugging (or press F5)
 
 6. You can test easily by going to the `test.http` file and click "Send Request". This file has POST requests asking different questions. For example: 
   
-    *"What is the value proposition of Durable Functions and what is it used for?"*
+    *"What is the value proposition of Azure Durable Functions and what is it used for?"*
 
     The request will return an HTTP response with some URLs that allow you to manage the orchestration, but this sample won't be using those.
 
-7. Check the `mylog.log` file. [This file](./app/mylog.log) logs the prompt and response from each language model, as well as the final evaluation result. 
+7. The model evaluation result is stored in a container called *results* and can be viewed using the Azure Storage Explorer. Open the explorer, click **Emulator & Attached** > **Storage Accounts** > **(Emulator - Default Ports)(Key)** > **Blob Containers** > **results**: 
+
+    ![Azure Storage Explorer view](./media/az-storage-explorer.png)
+
+8. View the dashboard for orchestration details by going to **localhost://8082** and clicking on the "default" task hub. 
 
 ### Inspect the solution 
 
@@ -129,13 +138,14 @@ Take a look at the `orchestrator_function` to see how Durable Functions allows y
 def orchestrator_function(context):
   # Previous logic
   
+  # Run all tasks in parallel
   tasks = [
     context.call_activity_with_retry("get_gpt35_result", retry_options, [user_prompt, system_prompt]),
     context.call_activity_with_retry("get_gpt4omini_result", retry_options, [user_prompt, system_prompt]),
     context.call_activity_with_retry("get_phi4_result", retry_options, [user_prompt, system_prompt])
   ]
   
-  # Run all tasks in parallel
+ # Wait for all the parallel tasks to complete before continuing
   results = yield context.task_all(tasks)
 
   # Other business logic
@@ -192,6 +202,26 @@ python3 -m pip install -r requirements.txt
 func start
 ```
 
+## Deploy and run app on Azure
+1. Follow [instructions](https://learn.microsoft.com/azure/azure-functions/durable/durable-task-scheduler/quickstart-durable-task-scheduler) to create the required resources on Azure. One of the resources created is an Azure Storage account, which is used by the Function App for deployment purposes. The sample uses this same storage account to store the model evaluation results. 
+
+1. On Azure portal, add these environment variables to the Function App by going to **Settings** > **Environment variables**: 
+    - `MODELS_ENDPOINT`
+    - `AZURE_AI_API_KEY`
+    - `BLOB_STORAGE_ENDPOINT`   
+
+    The value of `BLOB_STORAGE_ENDPOINT` should be the same as the `AzureWebJobsStorage` variable, which should be set automatically. 
+
+1. Deploy the app.
+
+1. Run the following command to get the endpoint of the HTTP trigger after deployment:
+    ```azurecli
+    az functionapp function list --resource-group <YOUR_RESOURCE_GROUP_NAME> --name <YOUR_FUNCTION_APP_NAME>  --query '[].{Function:name, URL:invokeUrlTemplate}' --output json
+    ```
+
+1. Update `test.http` with the right endpoint to send a POST request.
+
+1. Go to the Azure Storage account used by the Function App and find **Data storage** > **Containers**. Click on the container named *results*. This container stores the results of evaluations.  
 
 ## Resources
 

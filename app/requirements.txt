@@ -6,4 +6,5 @@ azure-functions
 azure-functions-durable
 openai
 azure-ai-inference
+azure-storage-blob
 
