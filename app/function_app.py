@@ -22,7 +22,13 @@ async def http_start(req: func.HttpRequest, client):
     """
     
     # Get user prompt
-    user_prompt = json.loads(req.get_body().decode())
+    user_prompt = ""
+    try:
+        req_body = req.get_json()
+    except Exception as e:
+        print(f"An error occurred: {e}")
+    else:
+        user_prompt = req_body.get("prompt")
     
     # Start the orchestration
     instance_id = await client.start_new("orchestrator_function", client_input=user_prompt)
